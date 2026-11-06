@@ -6,6 +6,9 @@ This is an Android GUI for [WireGuard](https://www.wireguard.com/). It [opportun
 
 ## Tunnel route exceptions
 
+> **Provisional and untested on Android devices.** This is development work;
+> successful builds and unit tests do not verify device routing behavior.
+
 The optional `KillSwitchExceptions` field in `[Interface]` lists IP addresses
 or networks to route outside the tunnel, for example:
 
