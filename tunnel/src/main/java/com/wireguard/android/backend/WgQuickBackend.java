@@ -135,6 +135,8 @@ public final class WgQuickBackend implements Backend {
                 (state == State.DOWN && originalState == State.DOWN))
             return originalState;
         if (state == State.UP) {
+            if (config != null && !config.getInterface().getKillSwitchExceptions().isEmpty())
+                throw new BackendException(Reason.EXCEPTIONS_UNSUPPORTED_KERNEL_BACKEND);
             toolsInstaller.ensureToolsAvailable();
             if (!multipleTunnels && originalState == State.DOWN) {
                 final List<Pair<Tunnel, Config>> rewind = new LinkedList<>();
@@ -181,6 +183,8 @@ public final class WgQuickBackend implements Backend {
         Log.i(TAG, "Bringing tunnel " + tunnel.getName() + ' ' + state);
 
         Objects.requireNonNull(config, "Trying to set state up with a null config");
+        if (state == State.UP && !config.getInterface().getKillSwitchExceptions().isEmpty())
+            throw new BackendException(Reason.EXCEPTIONS_UNSUPPORTED_KERNEL_BACKEND);
 
         final File tempFile = new File(localTemporaryDir, tunnel.getName() + ".conf");
         try (final FileOutputStream stream = new FileOutputStream(tempFile, false)) {

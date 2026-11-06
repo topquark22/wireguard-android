@@ -1,0 +1,26 @@
+name: Android build and tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+      - name: Run tunnel unit tests
+        run: ./gradlew :tunnel:testDebugUnitTest --no-daemon
+      - name: Build debug application
+        run: ./gradlew :ui:assembleDebug --no-daemon

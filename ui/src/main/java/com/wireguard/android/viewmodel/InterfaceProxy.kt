@@ -40,6 +40,13 @@ class InterfaceProxy : BaseObservable, Parcelable {
         }
 
     @get:Bindable
+    var killSwitchExceptions: String = ""
+        set(value) {
+            field = value
+            notifyPropertyChanged(BR.killSwitchExceptions)
+        }
+
+    @get:Bindable
     var listenPort: String = ""
         set(value) {
             field = value
@@ -77,12 +84,14 @@ class InterfaceProxy : BaseObservable, Parcelable {
         listenPort = parcel.readString() ?: ""
         mtu = parcel.readString() ?: ""
         privateKey = parcel.readString() ?: ""
+        killSwitchExceptions = parcel.readString() ?: ""
     }
 
     constructor(other: Interface) {
         addresses = Attribute.join(other.addresses)
         val dnsServerStrings = other.dnsServers.map { it.hostAddress }.plus(other.dnsSearchDomains)
         dnsServers = Attribute.join(dnsServerStrings)
+        killSwitchExceptions = Attribute.join(other.killSwitchExceptions)
         excludedApplications.addAll(other.excludedApplications)
         includedApplications.addAll(other.includedApplications)
         listenPort = other.listenPort.map { it.toString() }.orElse("")
@@ -107,6 +116,7 @@ class InterfaceProxy : BaseObservable, Parcelable {
         val builder = Interface.Builder()
         if (addresses.isNotEmpty()) builder.parseAddresses(addresses)
         if (dnsServers.isNotEmpty()) builder.parseDnsServers(dnsServers)
+        if (killSwitchExceptions.isNotEmpty()) builder.parseKillSwitchExceptions(killSwitchExceptions)
         if (excludedApplications.isNotEmpty()) builder.excludeApplications(excludedApplications)
         if (includedApplications.isNotEmpty()) builder.includeApplications(includedApplications)
         if (listenPort.isNotEmpty()) builder.parseListenPort(listenPort)
@@ -123,6 +133,7 @@ class InterfaceProxy : BaseObservable, Parcelable {
         dest.writeString(listenPort)
         dest.writeString(mtu)
         dest.writeString(privateKey)
+        dest.writeString(killSwitchExceptions)
     }
 
     private class InterfaceProxyCreator : Parcelable.Creator<InterfaceProxy> {

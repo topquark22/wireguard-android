@@ -43,6 +43,7 @@ public final class Interface {
     private final Set<String> dnsSearchDomains;
     private final Set<String> excludedApplications;
     private final Set<String> includedApplications;
+    private final Set<InetNetwork> killSwitchExceptions;
     private final KeyPair keyPair;
     private final Optional<Integer> listenPort;
     private final Optional<Integer> mtu;
@@ -54,6 +55,7 @@ public final class Interface {
         dnsSearchDomains = Collections.unmodifiableSet(new LinkedHashSet<>(builder.dnsSearchDomains));
         excludedApplications = Collections.unmodifiableSet(new LinkedHashSet<>(builder.excludedApplications));
         includedApplications = Collections.unmodifiableSet(new LinkedHashSet<>(builder.includedApplications));
+        killSwitchExceptions = Collections.unmodifiableSet(new LinkedHashSet<>(builder.killSwitchExceptions));
         keyPair = Objects.requireNonNull(builder.keyPair, "Interfaces must have a private key");
         listenPort = builder.listenPort;
         mtu = builder.mtu;
@@ -86,6 +88,9 @@ public final class Interface {
                 case "includedapplications":
                     builder.parseIncludedApplications(attribute.getValue());
                     break;
+                case "killswitchexceptions":
+                    builder.parseKillSwitchExceptions(attribute.getValue());
+                    break;
                 case "listenport":
                     builder.parseListenPort(attribute.getValue());
                     break;
@@ -113,6 +118,7 @@ public final class Interface {
                 && dnsSearchDomains.equals(other.dnsSearchDomains)
                 && excludedApplications.equals(other.excludedApplications)
                 && includedApplications.equals(other.includedApplications)
+                && killSwitchExceptions.equals(other.killSwitchExceptions)
                 && keyPair.equals(other.keyPair)
                 && listenPort.equals(other.listenPort)
                 && mtu.equals(other.mtu);
@@ -168,6 +174,11 @@ public final class Interface {
         return includedApplications;
     }
 
+    /** Returns the networks requested to bypass the VPN tunnel. */
+    public Set<InetNetwork> getKillSwitchExceptions() {
+        return killSwitchExceptions;
+    }
+
     /**
      * Returns the public/private key pair used by the interface.
      *
@@ -202,6 +213,7 @@ public final class Interface {
         hash = 31 * hash + dnsServers.hashCode();
         hash = 31 * hash + excludedApplications.hashCode();
         hash = 31 * hash + includedApplications.hashCode();
+        hash = 31 * hash + killSwitchExceptions.hashCode();
         hash = 31 * hash + keyPair.hashCode();
         hash = 31 * hash + listenPort.hashCode();
         hash = 31 * hash + mtu.hashCode();
@@ -242,6 +254,8 @@ public final class Interface {
             sb.append("ExcludedApplications = ").append(Attribute.join(excludedApplications)).append('\n');
         if (!includedApplications.isEmpty())
             sb.append("IncludedApplications = ").append(Attribute.join(includedApplications)).append('\n');
+        if (!killSwitchExceptions.isEmpty())
+            sb.append("KillSwitchExceptions = ").append(Attribute.join(killSwitchExceptions)).append('\n');
         listenPort.ifPresent(lp -> sb.append("ListenPort = ").append(lp).append('\n'));
         mtu.ifPresent(m -> sb.append("MTU = ").append(m).append('\n'));
         sb.append("PrivateKey = ").append(keyPair.getPrivateKey().toBase64()).append('\n');
@@ -273,6 +287,7 @@ public final class Interface {
         private final Set<String> excludedApplications = new LinkedHashSet<>();
         // Defaults to an empty set.
         private final Set<String> includedApplications = new LinkedHashSet<>();
+        private final Set<InetNetwork> killSwitchExceptions = new LinkedHashSet<>();
         // No default; must be provided before building.
         @Nullable private KeyPair keyPair;
         // Defaults to not present.
@@ -373,6 +388,21 @@ public final class Interface {
 
         public Builder parseIncludedApplications(final CharSequence apps) {
             return includeApplications(List.of(Attribute.split(apps)));
+        }
+
+        public Builder parseKillSwitchExceptions(final CharSequence value) throws BadConfigException {
+            try {
+                for (final String part : value.toString().split(",", -1)) {
+                    final String network = part.trim();
+                    final int slash = network.lastIndexOf('/');
+                    if (network.isEmpty() || (slash >= 0 && !network.substring(slash + 1).matches("[0-9]+")))
+                        throw new ParseException(InetNetwork.class, network, "Invalid network");
+                    killSwitchExceptions.add(InetNetwork.parse(network));
+                }
+                return this;
+            } catch (final ParseException e) {
+                throw new BadConfigException(Section.INTERFACE, Location.KILL_SWITCH_EXCEPTIONS, e);
+            }
         }
 
         public Builder parseListenPort(final String listenPort) throws BadConfigException {

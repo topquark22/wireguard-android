@@ -7,6 +7,7 @@ package com.wireguard.android.backend;
 
 import android.content.Context;
 import android.content.Intent;
+import android.net.IpPrefix;
 import android.os.Build;
 import android.os.ParcelFileDescriptor;
 import android.system.OsConstants;
@@ -223,6 +224,12 @@ public final class GoBackend implements Backend {
         if (state == originalState && tunnel == currentTunnel && config == currentConfig)
             return originalState;
         if (state == State.UP) {
+            if (config != null && !config.getInterface().getKillSwitchExceptions().isEmpty()) {
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU)
+                    throw new BackendException(Reason.EXCEPTIONS_REQUIRE_ANDROID_13);
+                if (!ExceptionRoutes.canExclude(config))
+                    throw new BackendException(Reason.EXCEPTIONS_CONFLICTING_ROUTES);
+            }
             final Config originalConfig = currentConfig;
             final Tunnel originalTunnel = currentTunnel;
             if (currentTunnel != null)
@@ -265,6 +272,15 @@ public final class GoBackend implements Backend {
                 throw be;
             }
             service.setOwner(this);
+
+            if (!config.getInterface().getKillSwitchExceptions().isEmpty()) {
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU)
+                    throw new BackendException(Reason.EXCEPTIONS_REQUIRE_ANDROID_13);
+                if (service.isLockdownEnabled())
+                    throw new BackendException(Reason.EXCEPTIONS_LOCKDOWN_ENABLED);
+                if (!ExceptionRoutes.canExclude(config))
+                    throw new BackendException(Reason.EXCEPTIONS_CONFLICTING_ROUTES);
+            }
 
             if (currentTunnelHandle != -1) {
                 Log.w(TAG, "Tunnel already up");
@@ -319,6 +335,11 @@ public final class GoBackend implements Backend {
                         sawDefaultRoute = true;
                     builder.addRoute(addr.getAddress(), addr.getMask());
                 }
+            }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                for (final InetNetwork exception : config.getInterface().getKillSwitchExceptions())
+                    builder.excludeRoute(new IpPrefix(exception.getAddress(), exception.getMask()));
             }
 
             // "Kill-switch" semantics

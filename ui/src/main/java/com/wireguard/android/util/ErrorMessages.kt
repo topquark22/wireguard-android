@@ -39,7 +39,11 @@ object ErrorMessages {
         BackendException.Reason.UNABLE_TO_START_VPN to R.string.vpn_start_error,
         BackendException.Reason.TUN_CREATION_ERROR to R.string.tun_create_error,
         BackendException.Reason.GO_ACTIVATION_ERROR_CODE to R.string.tunnel_on_error,
-        BackendException.Reason.DNS_RESOLUTION_FAILURE to R.string.tunnel_dns_failure
+        BackendException.Reason.DNS_RESOLUTION_FAILURE to R.string.tunnel_dns_failure,
+        BackendException.Reason.EXCEPTIONS_REQUIRE_ANDROID_13 to R.string.exceptions_require_android_13,
+        BackendException.Reason.EXCEPTIONS_LOCKDOWN_ENABLED to R.string.exceptions_lockdown_enabled,
+        BackendException.Reason.EXCEPTIONS_UNSUPPORTED_KERNEL_BACKEND to R.string.exceptions_unsupported_kernel_backend,
+        BackendException.Reason.EXCEPTIONS_CONFLICTING_ROUTES to R.string.exceptions_conflicting_routes
     )
     private val KFE_FORMAT_MAP = mapOf(
         Key.Format.BASE64 to R.string.key_length_explanation_base64,
